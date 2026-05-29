@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>分帳應用</title>
+    <title>分帳</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { font-family: sans-serif; }
@@ -53,6 +53,10 @@
                 if (amount === null || amount <= 0 || consumers.length === 0) return;
                 setRecords([{ id: Date.now(), description: description.trim() || '一般消費', amount, payer, consumers }, ...records]);
                 setAmountExpr(''); setDescription('');
+            };
+
+            const deleteRecord = (id) => {
+                setRecords(records.filter(r => r.id !== id));
             };
 
             const calculateBalances = () => {
@@ -111,9 +115,24 @@
 
                     <div className="bg-white p-6 rounded-3xl shadow-sm text-center">
                         {debtInfo ? (
-                            <p className="text-lg font-bold">{debtInfo.debtor} 要給 {debtInfo.creditor} ${debtInfo.amount}</p>
-                        ) : <p className="text-stone-400">兩人兩不相欠</p>}
-                        <button onClick={() => setRecords([])} className="mt-4 px-6 py-2 bg-stone-100 text-stone-500 rounded-full font-bold active-scale">結清全部</button>
+                            <p className="text-lg font-bold mb-4">{debtInfo.debtor} 要給 {debtInfo.creditor} ${debtInfo.amount}</p>
+                        ) : <p className="text-stone-400 mb-4">兩人兩不相欠</p>}
+                        <button onClick={() => setRecords([])} className="px-6 py-2 bg-stone-100 text-stone-500 rounded-full font-bold active-scale">結清全部</button>
+                    </div>
+
+                    <div className="space-y-3 pb-10">
+                        {records.map(r => (
+                            <div key={r.id} className="bg-white p-4 rounded-2xl flex items-center justify-between shadow-sm border border-stone-100">
+                                <div>
+                                    <p className="font-bold text-sm text-stone-800">{r.description}</p>
+                                    <p className="text-[10px] text-stone-400">{r.payer}付 / {r.consumers.join(', ')}用</p>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <p className="font-bold text-stone-700">${r.amount}</p>
+                                    <button onClick={() => deleteRecord(r.id)} className="text-stone-300 hover:text-rose-500">✕</button>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </div>
             );
