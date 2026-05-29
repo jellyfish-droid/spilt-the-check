@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分帳應用</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: sans-serif; }
+        .active-scale:active { transform: scale(0.95); }
+    </style>
+</head>
+<body class="bg-stone-50 text-stone-800 pb-40">
+    <div id="app" class="max-w-md mx-auto px-4 mt-4"></div>
+
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script type="text/babel">
+        const { useState } = React;
+
+        function App() {
+            const [amountExpr, setAmountExpr] = useState('');
+            const [description, setDescription] = useState('');
+            const [records, setRecords] = useState([]);
+            const [payer, setPayer] = useState('🥰');
+            const [consumers, setConsumers] = useState(['🥰', '😎']);
+
+            const evaluateExpression = (expr) => {
+                try {
+                    const result = new Function('return (' + expr.replace(/[^0-9+\-*/().\s]/g, '') + ')')();
+                    return isFinite(result) ? Math.round(result * 100) / 100 : null;
+                } catch { return null; }
+            };
+
+            const handleCalc = (val) => {
+                if (val === 'AC') setAmountExpr('');
+                else if (val === '⌫') setAmountExpr(prev => prev.slice(0, -1));
+                else if (val === '=') {
+                    const res = evaluateExpression(amountExpr);
+                    if (res !== null) setAmountExpr(String(res));
+                } else setAmountExpr(prev => prev + val);
+            };
+
+            const toggleConsumer = (emoji) => {
+                setConsumers(prev => 
+                    prev.includes(emoji) ? prev.filter(c => c !== emoji) : [...prev, emoji]
+                );
+            };
+
+            const handleAddRecord = () => {
+                const amount = evaluateExpression(amountExpr);
+                if (amount === null || amount <= 0 || consumers.length === 0) return;
+                setRecords([{ id: Date.now(), description: description.trim() || '一般消費', amount, payer, consumers }, ...records]);
+                setAmountExpr(''); setDescription('');
+            };
+
+            const calculateBalances = () => {
+                let balances = { '🥰': 0, '😎': 0 };
+                records.forEach(r => {
+                    balances[r.payer] += r.amount;
+                    r.consumers.forEach(c => balances[c] -= r.amount / r.consumers.length);
+                });
+                return balances;
+            };
+
+            const balances = calculateBalances();
+            const loveBalance = balances['🥰'];
+            const debtInfo = loveBalance > 0 ? { debtor: '😎', creditor: '🥰', amount: loveBalance } : 
+                             loveBalance < 0 ? { debtor: '🥰', creditor: '😎', amount: Math.abs(loveBalance) } : null;
+
+            return (
+                <div className="space-y-4">
+                    <h1 className="text-xl font-bold text-stone-700 py-4">分帳應用</h1>
+                    <div className="bg-white rounded-3xl p-5 shadow-sm border border-stone-100">
+                        <div className="grid grid-cols-12 gap-2 mb-4">
+                            <input value={description} onChange={e => setDescription(e.target.value)} placeholder="品項" className="col-span-5 px-4 py-3 rounded-2xl bg-stone-100/70" />
+                            <input value={amountExpr} readOnly placeholder="金額" className="col-span-7 px-4 py-3 rounded-2xl bg-stone-100/70 font-mono" />
+                        </div>
+                        
+                        <div className="bg-stone-100 p-4 rounded-3xl space-y-2.5 max-w-[340px] mx-auto">
+                            <div className="grid grid-cols-4 gap-2.5">
+                                <button onClick={() => handleCalc('AC')} className="h-12 rounded-full bg-stone-300/80 active-scale">AC</button>
+                                <button onClick={() => handleCalc('⌫')} className="col-span-2 h-12 rounded-full bg-stone-600/10 active-scale flex items-center justify-center pl-2">⌫</button>
+                                <button onClick={() => handleCalc('/')} className="h-12 rounded-full bg-amber-600/80 text-white active-scale">÷</button>
+                            </div>
+                            <div className="grid grid-cols-4 gap-2.5">
+                                {['7','8','9','*','4','5','6','-','1','2','3','+'].map(num => (
+                                    <button key={num} onClick={() => handleCalc(num)} className={`h-12 rounded-full active-scale ${isNaN(num) ? 'bg-amber-600/80 text-white' : 'bg-stone-600/10'}`}>{num}</button>
+                                ))}
+                            </div>
+                            <div className="grid grid-cols-4 gap-2.5">
+                                <button onClick={() => handleCalc('0')} className="col-span-2 h-12 rounded-full bg-stone-600/10 active-scale">0</button>
+                                <button onClick={() => handleCalc('.')} className="h-12 rounded-full bg-stone-600/10 active-scale">.</button>
+                                <button onClick={() => handleCalc('=')} className="h-12 rounded-full bg-stone-700 text-white active-scale">=</button>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 mt-4">
+                            <div className="bg-stone-100/60 p-2 rounded-2xl flex items-center justify-center gap-2">
+                                <span className="text-[10px] text-stone-400 font-bold">付</span>
+                                {['🥰', '😎'].map(e => <button key={e} onClick={() => setPayer(e)} className={`w-10 h-10 rounded-xl ${payer === e ? 'bg-white shadow' : 'opacity-30'}`}>{e}</button>)}
+                            </div>
+                            <div className="bg-stone-100/60 p-2 rounded-2xl flex items-center justify-center gap-2">
+                                <span className="text-[10px] text-stone-400 font-bold">用</span>
+                                {['🥰', '😎'].map(e => <button key={e} onClick={() => toggleConsumer(e)} className={`w-10 h-10 rounded-xl ${consumers.includes(e) ? 'bg-white shadow' : 'opacity-30'}`}>{e}</button>)}
+                            </div>
+                        </div>
+                        <button onClick={handleAddRecord} className="w-full mt-4 py-3 bg-stone-700 text-white rounded-2xl font-bold">新增紀錄</button>
+                    </div>
+
+                    <div className="bg-white p-6 rounded-3xl shadow-sm text-center">
+                        {debtInfo ? (
+                            <p className="text-lg font-bold">{debtInfo.debtor} 要給 {debtInfo.creditor} ${debtInfo.amount}</p>
+                        ) : <p className="text-stone-400">兩人兩不相欠</p>}
+                        <button onClick={() => setRecords([])} className="mt-4 px-6 py-2 bg-stone-100 text-stone-500 rounded-full font-bold active-scale">結清全部</button>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('app')).render(<App />);
+    </script>
+</body>
+</html>
